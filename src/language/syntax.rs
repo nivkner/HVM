@@ -30,6 +30,20 @@ pub enum Oper {
   Eql, Gte, Gtn, Neq,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LinearTerm {
+  Var { name: String }, // TODO: add `global: bool`
+  Dup { nam0: String, nam1: String, expr: Box<LinearTerm>, body: Box<LinearTerm> },
+  Sup { val0: Box<LinearTerm>, val1: Box<LinearTerm> },
+  Let { name: String, expr: Box<LinearTerm>, body: Box<LinearTerm> },
+  Lam { name: String, body: Box<LinearTerm> },
+  App { func: Box<LinearTerm>, argm: Box<LinearTerm> },
+  Ctr { name: String, args: Vec<Box<LinearTerm>> },
+  U6O { numb: u64 },
+  F6O { numb: u64 },
+  Op2 { oper: Oper, val0: Box<LinearTerm>, val1: Box<LinearTerm> },
+}
+
 // Rule
 // ----
 
@@ -156,6 +170,36 @@ impl std::fmt::Display for Term {
           }
         }
 
+        write!(f, "({}{})", name, args.iter().map(|x| format!(" {}", x)).collect::<String>())
+      }
+      Self::U6O { numb } => write!(f, "{}", &u60::show(*numb)),
+      Self::F6O { numb } => write!(f, "{}", &f60::show(*numb)),
+      Self::Op2 { oper, val0, val1 } => write!(f, "({} {} {})", oper, val0, val1),
+    }
+  }
+}
+
+impl std::fmt::Display for LinearTerm {
+  // WARN: I think this could overflow, might need to rewrite it to be iterative instead of recursive?
+  // NOTE: Another issue is complexity. This function is O(N^2). Should use ropes to be linear.
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Self::Var { name } => write!(f, "{}", name),
+      Self::Dup { nam0, nam1, expr, body } => write!(f, "dup {} {} = {}; {}", nam0, nam1, expr, body),
+      Self::Sup { val0, val1 } => write!(f, "{{{} {}}}", val0, val1),
+      Self::Let { name, expr, body } => write!(f, "let {} = {}; {}", name, expr, body),
+      Self::Lam { name, body } => write!(f, "λ{} {}", name, body),
+      Self::App { func, argm } => {
+        let mut args = vec![argm];
+        let mut expr = func;
+        while let Self::App { func, argm } = &**expr {
+          args.push(argm);
+          expr = func;
+        }
+        args.reverse();
+        write!(f, "({} {})", expr, args.iter().map(|x| format!("{}",x)).collect::<Vec<String>>().join(" "))
+      },
+      Self::Ctr { name, args } => {
         write!(f, "({}{})", name, args.iter().map(|x| format!(" {}", x)).collect::<String>())
       }
       Self::U6O { numb } => write!(f, "{}", &u60::show(*numb)),

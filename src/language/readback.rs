@@ -238,7 +238,7 @@ pub fn as_term(heap: &Heap, prog: &Program, host: u64) -> Box<language::syntax::
 }
 
 // Reads a term linearly, i.e., preserving dups
-pub fn as_linear_term(heap: &Heap, prog: &Program, host: u64) -> Box<language::syntax::Term> {
+pub fn as_linear_term(heap: &Heap, prog: &Program, host: u64) -> Box<language::syntax::LinearTerm> {
   enum StackItem {
     Term(Ptr),
     Resolver(Ptr),
@@ -252,7 +252,7 @@ pub fn as_linear_term(heap: &Heap, prog: &Program, host: u64) -> Box<language::s
     }
   }
 
-  fn dups(heap: &Heap, prog: &Program, term: Ptr, names: &mut HashMap<u64, String>) -> language::syntax::Term {
+  fn dups(heap: &Heap, prog: &Program, term: Ptr, names: &mut HashMap<u64, String>) -> language::syntax::LinearTerm {
     let mut lets: HashMap<u64, u64> = HashMap::new();
     let mut kinds: HashMap<u64, u64> = HashMap::new();
     let mut stack = vec![term];
@@ -305,7 +305,7 @@ pub fn as_linear_term(heap: &Heap, prog: &Program, host: u64) -> Box<language::s
     if lets.is_empty() {
       cont
     } else {
-      let mut output = language::syntax::Term::Var { name: "?".to_string() };
+      let mut output = language::syntax::LinearTerm::Var { name: "?".to_string() };
       for (i, (_key, pos)) in lets.iter().enumerate() {
         // todo: reverse
         let what = String::from("?h");
@@ -314,18 +314,18 @@ pub fn as_linear_term(heap: &Heap, prog: &Program, host: u64) -> Box<language::s
         let nam1 = if runtime::load_ptr(heap, pos + 1) == runtime::Era() { String::from("*") } else { format!("b{}", name) };
         let expr = expr(heap, prog, runtime::load_ptr(heap, pos + 2), &names);
         if i == 0 {
-          output = language::syntax::Term::Dup { nam0, nam1, expr: Box::new(expr), body: Box::new(cont.clone()) };
+          output = language::syntax::LinearTerm::Dup { nam0, nam1, expr: Box::new(expr), body: Box::new(cont.clone()) };
         } else {
-          output = language::syntax::Term::Dup { nam0, nam1, expr: Box::new(expr), body: Box::new(output) };
+          output = language::syntax::LinearTerm::Dup { nam0, nam1, expr: Box::new(expr), body: Box::new(output) };
         }
       }
       output
     }
   }
 
-  fn expr(heap: &Heap, prog: &Program, term: Ptr, names: &HashMap<u64, String>) -> language::syntax::Term {
+  fn expr(heap: &Heap, prog: &Program, term: Ptr, names: &HashMap<u64, String>) -> language::syntax::LinearTerm {
     let mut stack = vec![StackItem::Term(term)];
-    let mut output : Vec<language::syntax::Term> = Vec::new();
+    let mut output : Vec<language::syntax::LinearTerm> = Vec::new();
     while !stack.is_empty() {
       let item = stack.pop().unwrap();
       match item {
@@ -339,7 +339,7 @@ pub fn as_linear_term(heap: &Heap, prog: &Program, host: u64) -> Box<language::s
                 args.push(Box::new(output.pop().unwrap()));
               }
               let name = ctr_name(prog, func);
-              output.push(language::syntax::Term::Ctr { name, args });
+              output.push(language::syntax::LinearTerm::Ctr { name, args });
             },
             runtime::FUN => {
               let func = runtime::get_ext(term);
@@ -349,17 +349,17 @@ pub fn as_linear_term(heap: &Heap, prog: &Program, host: u64) -> Box<language::s
                 args.push(Box::new(output.pop().unwrap()));
               }
               let name = ctr_name(prog, func);
-              output.push(language::syntax::Term::Ctr { name, args });
+              output.push(language::syntax::LinearTerm::Ctr { name, args });
             }
             runtime::LAM => {
               let name = format!("x{}", names.get(&runtime::get_loc(term, 0)).unwrap_or(&String::from("?")));
               let body = Box::new(output.pop().unwrap());
-              output.push(language::syntax::Term::Lam { name, body });
+              output.push(language::syntax::LinearTerm::Lam { name, body });
             }
             runtime::APP => {
               let argm = Box::new(output.pop().unwrap());
               let func = Box::new(output.pop().unwrap());
-              output.push(language::syntax::Term::App { func , argm });
+              output.push(language::syntax::LinearTerm::App { func , argm });
             }
             runtime::OP2 => {
               let oper = runtime::get_ext(term);
@@ -384,7 +384,7 @@ pub fn as_linear_term(heap: &Heap, prog: &Program, host: u64) -> Box<language::s
               };
               let val1 = Box::new(output.pop().unwrap());
               let val0 = Box::new(output.pop().unwrap());
-              output.push(language::syntax::Term::Op2 { oper, val0, val1 })
+              output.push(language::syntax::LinearTerm::Op2 { oper, val0, val1 })
             }
             _ => panic!("Term not valid in readback"),
           }
@@ -393,15 +393,15 @@ pub fn as_linear_term(heap: &Heap, prog: &Program, host: u64) -> Box<language::s
           match runtime::get_tag(term) {
             runtime::DP0 => {
               let name = format!("a{}", names.get(&runtime::get_loc(term, 0)).unwrap_or(&String::from("?a")));
-              output.push(language::syntax::Term::Var { name });
+              output.push(language::syntax::LinearTerm::Var { name });
             }
             runtime::DP1 => {
               let name = format!("b{}", names.get(&runtime::get_loc(term, 0)).unwrap_or(&String::from("?b")));
-              output.push(language::syntax::Term::Var { name });
+              output.push(language::syntax::LinearTerm::Var { name });
             }
             runtime::VAR => {
               let name = format!("x{}", names.get(&runtime::get_loc(term, 0)).unwrap_or(&String::from("?x")));
-              output.push(language::syntax::Term::Var { name });
+              output.push(language::syntax::LinearTerm::Var { name });
             }
             runtime::LAM => {
               stack.push(StackItem::Resolver(term));
@@ -420,11 +420,11 @@ pub fn as_linear_term(heap: &Heap, prog: &Program, host: u64) -> Box<language::s
             }
             runtime::U60 => {
               let numb = runtime::get_num(term);
-              output.push(language::syntax::Term::U6O { numb });
+              output.push(language::syntax::LinearTerm::U6O { numb });
             }
             runtime::F60 => {
               let numb = runtime::get_num(term);
-              output.push(language::syntax::Term::F6O { numb });
+              output.push(language::syntax::LinearTerm::F6O { numb });
             }
             runtime::CTR => {
               let arit = runtime::arity_of(&prog.aris, term);

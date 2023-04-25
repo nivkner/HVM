@@ -387,7 +387,7 @@ impl Runtime {
   }
 
   /// Given a location, recovers the Term stored on it
-  pub fn linear_readback(&self, host: u64) -> Box<language::syntax::Term> {
+  pub fn linear_readback(&self, host: u64) -> Box<language::syntax::LinearTerm> {
     language::readback::as_linear_term(&self.heap, &self.prog, host)
   }
 }

@@ -140,11 +140,12 @@ pub fn as_term(heap: &Heap, prog: &Program, host: u64) -> Box<language::syntax::
           stacks.push(col, old);
           got
         } else {
-          let val0 = runtime::load_arg(&ctx.heap, term, 0);
-          let val1 = runtime::load_arg(&ctx.heap, term, 1);
-          let val0 = readback(heap, prog, ctx, stacks, val0, depth + 1);
-          let val1 = readback(heap, prog, ctx, stacks, val1, depth + 1);
-          return Box::new(language::syntax::Term::Sup { val0, val1 });
+          //let val0 = runtime::load_arg(&ctx.heap, term, 0);
+          //let val1 = runtime::load_arg(&ctx.heap, term, 1);
+          //let val0 = readback(heap, prog, ctx, stacks, val0, depth + 1);
+          //let val1 = readback(heap, prog, ctx, stacks, val1, depth + 1);
+          //return Box::new(language::syntax::Term::Sup { val0, val1 });
+          unreachable!("unresolved SUP");
         }
       }
       runtime::DP0 => {

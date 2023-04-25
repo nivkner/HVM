@@ -11,7 +11,6 @@ use crate::runtime::data::f60;
 #[derive(Clone, Debug)]
 pub enum Term {
   Var { name: String }, // TODO: add `global: bool`
-  Sup { val0: Box<Term>, val1: Box<Term> },
   Let { name: String, expr: Box<Term>, body: Box<Term> },
   Lam { name: String, body: Box<Term> },
   App { func: Box<Term>, argm: Box<Term> },
@@ -152,7 +151,6 @@ impl std::fmt::Display for Term {
     }
     match self {
       Self::Var { name } => write!(f, "{}", name),
-      Self::Sup { val0, val1 } => write!(f, "{{{} {}}}", val0, val1),
       Self::Let { name, expr, body } => write!(f, "let {} = {}; {}", name, expr, body),
       Self::Lam { name, body } => write!(f, "λ{} {}", name, body),
       Self::App { func, argm } => {
@@ -248,20 +246,6 @@ pub fn parse_let(state: HOPA::State) -> HOPA::Answer<Option<Box<Term>>> {
     }),
     state,
   );
-}
-
-pub fn parse_sup(state: HOPA::State) -> HOPA::Answer<Option<Box<Term>>> {
-  HOPA::guard(
-    HOPA::do_there_take_exact("{"),
-    Box::new(move |state| {
-      let (state, _)    = HOPA::force_there_take_exact("{", state)?;
-      let (state, val0) = parse_term(state)?;
-      let (state, val1) = parse_term(state)?;
-      let (state, _)    = HOPA::force_there_take_exact("}", state)?;
-      Ok((state, Box::new(Term::Sup { val0, val1 })))
-    }),
-    state,
-  )
 }
 
 pub fn parse_lam(state: HOPA::State) -> HOPA::Answer<Option<Box<Term>>> {
@@ -589,7 +573,6 @@ pub fn parse_term(state: HOPA::State) -> HOPA::Answer<Box<Term>> {
     Box::new(parse_ctr),
     Box::new(parse_op2),
     Box::new(parse_app),
-    Box::new(parse_sup),
     Box::new(parse_num),
     Box::new(parse_sym_sugar),
     Box::new(parse_chr_sugar),

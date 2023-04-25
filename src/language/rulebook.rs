@@ -295,12 +295,6 @@ pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::
           }
         }
       }
-      language::syntax::Term::Sup { val0, val1 } => {
-        let val0 = sanitize_term(val0, lhs, tbl, ctx)?;
-        let val1 = sanitize_term(val1, lhs, tbl, ctx)?;
-        let term = language::syntax::LinearTerm::Sup { val0, val1 };
-        Box::new(term)
-      }
       language::syntax::Term::Let { name, expr, body } => {
         if runtime::get_global_name_misc(name).is_some() {
           panic!("Global variable '{}' not allowed on let. Use dup instead.", name);
@@ -622,10 +616,6 @@ pub fn subst(term: &mut language::syntax::Term, sub_name: &str, value: &language
       if sub_name == name {
         *term = value.clone();
       }
-    }
-    language::syntax::Term::Sup { val0, val1 } => {
-      subst(&mut *val0, sub_name, value);
-      subst(&mut *val1, sub_name, value);
     }
     language::syntax::Term::Let { name, expr, body } => {
       subst(&mut *expr, sub_name, value);

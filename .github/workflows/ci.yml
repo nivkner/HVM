@@ -1,7 +1,6 @@
 name: CI
 on:
-  pull_request:
-    types: [opened, review_requested, ready_for_review]
+  push:
 jobs:
   cargo:
     if: github.event.pull_request.draft == false

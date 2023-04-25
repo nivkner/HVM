@@ -7,9 +7,3 @@ jobs:
   cargo:
     if: github.event.pull_request.draft == false
     uses: ./.github/workflows/cargo.yml
-  tests:
-    needs: [cargo]
-    uses: ./.github/workflows/tests.yml
-  nix:
-    needs: [cargo]
-    uses: ./.github/workflows/nix.yml

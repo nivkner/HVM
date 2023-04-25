@@ -53,6 +53,12 @@ pub struct Rule {
   pub rhs: Box<Term>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LinearRule {
+  pub lhs: Box<LinearTerm>,
+  pub rhs: Box<LinearTerm>,
+}
+
 // SMap
 // ----
 

@@ -25,11 +25,10 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
 
       - run: cargo build --release
       # FIXME: compiled mode of kind 2 teste don't work because compiled
       # code don't have sugar for strings
-      - run: python3 -X utf8 tests/test_cli.py --hvm-cmd ${{env.HVM_CMD}}
-          --run-mode ${{ matrix.run_mode }} --skip-test kind2
+      - run: python3 -X utf8 tests/test_cli.py --hvm-cmd ${{env.HVM_CMD}} --run-mode ${{ matrix.run_mode }} --skip-test kind2

@@ -35,7 +35,6 @@ pub use runtime::{Ptr,
 pub use language::syntax::{
   Term,
   Term::Var, // TODO: add `global: bool`
-  Term::Dup,
   Term::Let,
   Term::Lam,
   Term::App,

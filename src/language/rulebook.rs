@@ -295,50 +295,6 @@ pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::
           }
         }
       }
-      language::syntax::Term::Dup { expr, body, nam0, nam1 } => {
-        let is_global_0 = runtime::get_global_name_misc(nam0).is_some();
-        let is_global_1 = runtime::get_global_name_misc(nam1).is_some();
-        if is_global_0 && runtime::get_global_name_misc(nam0) != Some(runtime::DP0) {
-          panic!("The name of the global dup var '{}' must start with '$0'.", nam0);
-        }
-        if is_global_1 && runtime::get_global_name_misc(nam1) != Some(runtime::DP1) {
-          panic!("The name of the global dup var '{}' must start with '$1'.", nam1);
-        }
-        if is_global_0 != is_global_1 {
-          panic!("Both variables must be global: '{}' and '{}'.", nam0, nam1);
-        }
-        if is_global_0 && &nam0[2..] != &nam1[2..] {
-          panic!("Global dup names must be identical: '{}' and '{}'.", nam0, nam1);
-        }
-        let new_nam0 = if is_global_0 { nam0.clone() } else { (ctx.fresh)() };
-        let new_nam1 = if is_global_1 { nam1.clone() } else { (ctx.fresh)() };
-        let expr = sanitize_term(expr, lhs, tbl, ctx)?;
-        let got_nam0 = tbl.remove(nam0);
-        let got_nam1 = tbl.remove(nam1);
-        if !is_global_0 {
-          tbl.insert(nam0.clone(), new_nam0.clone());
-        }
-        if !is_global_1 {
-          tbl.insert(nam1.clone(), new_nam1.clone());
-        }
-        let body = sanitize_term(body, lhs, tbl, ctx)?;
-        if !is_global_0 {
-          tbl.remove(nam0);
-        }
-        if let Some(x) = got_nam0 {
-          tbl.insert(nam0.clone(), x);
-        }
-        if !is_global_1 {
-          tbl.remove(nam1);
-        }
-        if let Some(x) = got_nam1 {
-          tbl.insert(nam1.clone(), x);
-        }
-        let nam0 = format!("{}{}", new_nam0, if !is_global_0 { ".0" } else { "" });
-        let nam1 = format!("{}{}", new_nam1, if !is_global_0 { ".0" } else { "" });
-        let term = language::syntax::LinearTerm::Dup { nam0, nam1, expr, body };
-        Box::new(term)
-      }
       language::syntax::Term::Sup { val0, val1 } => {
         let val0 = sanitize_term(val0, lhs, tbl, ctx)?;
         let val1 = sanitize_term(val1, lhs, tbl, ctx)?;
@@ -665,12 +621,6 @@ pub fn subst(term: &mut language::syntax::Term, sub_name: &str, value: &language
     language::syntax::Term::Var { name } => {
       if sub_name == name {
         *term = value.clone();
-      }
-    }
-    language::syntax::Term::Dup { nam0, nam1, expr, body } => {
-      subst(&mut *expr, sub_name, value);
-      if nam0 != sub_name && nam1 != sub_name {
-        subst(&mut *body, sub_name, value);
       }
     }
     language::syntax::Term::Sup { val0, val1 } => {

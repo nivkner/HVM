@@ -11,7 +11,6 @@ use crate::runtime::data::f60;
 #[derive(Clone, Debug)]
 pub enum Term {
   Var { name: String }, // TODO: add `global: bool`
-  Dup { nam0: String, nam1: String, expr: Box<Term>, body: Box<Term> },
   Sup { val0: Box<Term>, val1: Box<Term> },
   Let { name: String, expr: Box<Term>, body: Box<Term> },
   Lam { name: String, body: Box<Term> },
@@ -153,7 +152,6 @@ impl std::fmt::Display for Term {
     }
     match self {
       Self::Var { name } => write!(f, "{}", name),
-      Self::Dup { nam0, nam1, expr, body } => write!(f, "dup {} {} = {}; {}", nam0, nam1, expr, body),
       Self::Sup { val0, val1 } => write!(f, "{{{} {}}}", val0, val1),
       Self::Let { name, expr, body } => write!(f, "let {} = {}; {}", name, expr, body),
       Self::Lam { name, body } => write!(f, "λ{} {}", name, body),
@@ -247,23 +245,6 @@ pub fn parse_let(state: HOPA::State) -> HOPA::Answer<Option<Box<Term>>> {
       let (state, _)    = HOPA::there_take_exact(";", state)?;
       let (state, body) = parse_term(state)?;
       Ok((state, Box::new(Term::Let { name, expr, body })))
-    }),
-    state,
-  );
-}
-
-pub fn parse_dup(state: HOPA::State) -> HOPA::Answer<Option<Box<Term>>> {
-  return HOPA::guard(
-    HOPA::do_there_take_exact("dup "),
-    Box::new(|state| {
-      let (state, _)    = HOPA::force_there_take_exact("dup ", state)?;
-      let (state, nam0) = HOPA::there_nonempty_name(state)?;
-      let (state, nam1) = HOPA::there_nonempty_name(state)?;
-      let (state, _)    = HOPA::force_there_take_exact("=", state)?;
-      let (state, expr) = parse_term(state)?;
-      let (state, _)    = HOPA::there_take_exact(";", state)?;
-      let (state, body) = parse_term(state)?;
-      Ok((state, Box::new(Term::Dup { nam0, nam1, expr, body })))
     }),
     state,
   );
@@ -604,7 +585,6 @@ pub fn parse_bng(state: HOPA::State) -> HOPA::Answer<Option<Box<Term>>> {
 pub fn parse_term(state: HOPA::State) -> HOPA::Answer<Box<Term>> {
   HOPA::attempt("Term", &[
     Box::new(parse_let),
-    Box::new(parse_dup),
     Box::new(parse_lam),
     Box::new(parse_ctr),
     Box::new(parse_op2),

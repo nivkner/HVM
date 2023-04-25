@@ -121,7 +121,7 @@ pub fn build_rulebook(book: &language::rulebook::RuleBook) -> (String, String) {
 pub fn build_function(
   book  : &language::rulebook::RuleBook,
   fname : &str,
-  rules : &[language::syntax::Rule],
+  rules : &[language::syntax::LinearRule],
 ) -> (String, String) {
   if let runtime::Function::Interpreted {
     smap: fn_smap,

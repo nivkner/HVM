@@ -209,21 +209,21 @@ pub fn get_global_name_misc(name: &str) -> Option<u64> {
 }
 
 // todo: "dups" still needs to be moved out on `alloc_body` etc.
-pub fn build_function(book: &language::rulebook::RuleBook, fn_name: &str, rules: &[language::syntax::Rule]) -> Function {
+pub fn build_function(book: &language::rulebook::RuleBook, fn_name: &str, rules: &[language::syntax::LinearRule]) -> Function {
   let hoas = fn_name.starts_with("F$");
   let dynrules = rules.iter().filter_map(|rule| {
-    if let language::syntax::Term::Ctr { ref name, ref args } = *rule.lhs {
+    if let language::syntax::LinearTerm::Ctr { ref name, ref args } = *rule.lhs {
       let mut cond = Vec::new();
       let mut vars = Vec::new();
       let mut inps = Vec::new();
       let mut free = Vec::new();
       for (i, arg) in args.iter().enumerate() {
         match &**arg {
-          language::syntax::Term::Ctr { name, args } => {
+          language::syntax::LinearTerm::Ctr { name, args } => {
             cond.push(Ctr(*book.name_to_id.get(&*name).unwrap_or(&0), 0));
             free.push((i as u64, args.len() as u64));
             for (j, arg) in args.iter().enumerate() {
-              if let language::syntax::Term::Var { ref name } = **arg {
+              if let language::syntax::LinearTerm::Var { ref name } = **arg {
                 vars.push(RuleVar { param: i as u64, field: Some(j as u64), erase: name == "*" });
                 inps.push(name.clone());
               } else {
@@ -231,13 +231,13 @@ pub fn build_function(book: &language::rulebook::RuleBook, fn_name: &str, rules:
               }
             }
           }
-          language::syntax::Term::U6O { numb } => {
+          language::syntax::LinearTerm::U6O { numb } => {
             cond.push(U6O(*numb as u64));
           }
-          language::syntax::Term::F6O { numb } => {
+          language::syntax::LinearTerm::F6O { numb } => {
             cond.push(F6O(*numb as u64));
           }
-          language::syntax::Term::Var { name } => {
+          language::syntax::LinearTerm::Var { name } => {
             cond.push(Var(0));
             vars.push(RuleVar { param: i as u64, field: None, erase: name == "*" });
             inps.push(name.clone());
@@ -297,7 +297,7 @@ pub fn gen_names(book: &language::rulebook::RuleBook) -> U64Map<String> {
 }
 
 /// converts a language term to a runtime term
-pub fn term_to_core(book: &language::rulebook::RuleBook, term: &language::syntax::Term, inps: &[String]) -> Core {
+pub fn term_to_core(book: &language::rulebook::RuleBook, term: &language::syntax::LinearTerm, inps: &[String]) -> Core {
   fn convert_oper(oper: &language::syntax::Oper) -> u64 {
     match oper {
       language::syntax::Oper::Add => ADD,
@@ -321,13 +321,13 @@ pub fn term_to_core(book: &language::rulebook::RuleBook, term: &language::syntax
 
   #[allow(clippy::identity_op)]
   fn convert_term(
-    term: &language::syntax::Term,
+    term: &language::syntax::LinearTerm,
     book: &language::rulebook::RuleBook,
     depth: u64,
     vars: &mut Vec<String>,
   ) -> Core {
     match term {
-      language::syntax::Term::Var { name } => {
+      language::syntax::LinearTerm::Var { name } => {
         if let Some((idx, _)) = vars.iter().enumerate().rev().find(|(_, var)| var == &name) {
           Core::Var { bidx: idx as u64 }
         } else {
@@ -339,7 +339,7 @@ pub fn term_to_core(book: &language::rulebook::RuleBook, term: &language::syntax
           }
         }
       }
-      language::syntax::Term::Dup { nam0, nam1, expr, body } => {
+      language::syntax::LinearTerm::Dup { nam0, nam1, expr, body } => {
         let eras = (nam0 == "*", nam1 == "*");
         let glob = if get_global_name_misc(nam0).is_some() { hash(&nam0[2..].to_string()) } else { 0 };
         let expr = Box::new(convert_term(expr, book, depth + 0, vars));
@@ -350,12 +350,12 @@ pub fn term_to_core(book: &language::rulebook::RuleBook, term: &language::syntax
         vars.pop();
         Core::Dup { eras, glob, expr, body }
       }
-      language::syntax::Term::Sup { val0, val1 } => {
+      language::syntax::LinearTerm::Sup { val0, val1 } => {
         let val0 = Box::new(convert_term(val0, book, depth + 0, vars));
         let val1 = Box::new(convert_term(val1, book, depth + 0, vars));
         Core::Sup { val0, val1 }
       }
-      language::syntax::Term::Lam { name, body } => {
+      language::syntax::LinearTerm::Lam { name, body } => {
         let glob = if get_global_name_misc(name).is_some() { hash(name) } else { 0 };
         let eras = name == "*";
         vars.push(name.clone());
@@ -363,19 +363,19 @@ pub fn term_to_core(book: &language::rulebook::RuleBook, term: &language::syntax
         vars.pop();
         Core::Lam { eras, glob, body }
       }
-      language::syntax::Term::Let { name, expr, body } => {
+      language::syntax::LinearTerm::Let { name, expr, body } => {
         let expr = Box::new(convert_term(expr, book, depth + 0, vars));
         vars.push(name.clone());
         let body = Box::new(convert_term(body, book, depth + 1, vars));
         vars.pop();
         Core::Let { expr, body }
       }
-      language::syntax::Term::App { func, argm } => {
+      language::syntax::LinearTerm::App { func, argm } => {
         let func = Box::new(convert_term(func, book, depth + 0, vars));
         let argm = Box::new(convert_term(argm, book, depth + 0, vars));
         Core::App { func, argm }
       }
-      language::syntax::Term::Ctr { name, args } => {
+      language::syntax::LinearTerm::Ctr { name, args } => {
         let term_func = *book.name_to_id.get(name).unwrap_or_else(|| panic!("unbound symbol: {}", name));
         let term_args = args.iter().map(|arg| convert_term(arg, book, depth + 0, vars)).collect();
         if *book.ctr_is_fun.get(name).unwrap_or(&false) {
@@ -384,9 +384,9 @@ pub fn term_to_core(book: &language::rulebook::RuleBook, term: &language::syntax
           Core::Ctr { func: term_func, args: term_args }
         }
       }
-      language::syntax::Term::U6O { numb } => Core::U6O { numb: *numb },
-      language::syntax::Term::F6O { numb } => Core::F6O { numb: *numb },
-      language::syntax::Term::Op2 { oper, val0, val1 } => {
+      language::syntax::LinearTerm::U6O { numb } => Core::U6O { numb: *numb },
+      language::syntax::LinearTerm::F6O { numb } => Core::F6O { numb: *numb },
+      language::syntax::LinearTerm::Op2 { oper, val0, val1 } => {
         let oper = convert_oper(oper);
         let val0 = Box::new(convert_term(val0, book, depth + 0, vars));
         let val1 = Box::new(convert_term(val1, book, depth + 1, vars));
@@ -586,7 +586,7 @@ pub fn alloc_closed_core(heap: &Heap, prog: &Program, tid: usize, term: &Core) -
   host
 }
 
-pub fn alloc_term(heap: &Heap, prog: &Program, tid: usize, book: &language::rulebook::RuleBook, term: &language::syntax::Term) -> u64 {
+pub fn alloc_term(heap: &Heap, prog: &Program, tid: usize, book: &language::rulebook::RuleBook, term: &language::syntax::LinearTerm) -> u64 {
   alloc_closed_core(heap, prog, tid, &term_to_core(book, term, &vec![]))
 }
 

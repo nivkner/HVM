@@ -22,7 +22,7 @@ pub struct RuleBook {
   pub ctr_is_fun: HashMap<String, bool>,
 }
 
-pub type RuleGroup = (usize, Vec<language::syntax::Rule>);
+pub type RuleGroup = (usize, Vec<language::syntax::LinearRule>);
 
 // Creates an empty rulebook
 pub fn new_rulebook() -> RuleBook {
@@ -46,32 +46,32 @@ pub fn new_rulebook() -> RuleBook {
 
 // Adds a group to a rulebook
 pub fn add_group(book: &mut RuleBook, name: &str, group: &RuleGroup) {
-  fn register(book: &mut RuleBook, term: &language::syntax::Term, lhs_top: bool) {
+  fn register(book: &mut RuleBook, term: &language::syntax::LinearTerm, lhs_top: bool) {
     match term {
-      language::syntax::Term::Dup { expr, body, .. } => {
+      language::syntax::LinearTerm::Dup { expr, body, .. } => {
         register(book, expr, false);
         register(book, body, false);
       }
-      language::syntax::Term::Sup { val0, val1 } => {
+      language::syntax::LinearTerm::Sup { val0, val1 } => {
         register(book, val0, false);
         register(book, val1, false);
       }
-      language::syntax::Term::Let { expr, body, .. } => {
+      language::syntax::LinearTerm::Let { expr, body, .. } => {
         register(book, expr, false);
         register(book, body, false);
       }
-      language::syntax::Term::Lam { body, .. } => {
+      language::syntax::LinearTerm::Lam { body, .. } => {
         register(book, body, false);
       }
-      language::syntax::Term::App { func, argm, .. } => {
+      language::syntax::LinearTerm::App { func, argm, .. } => {
         register(book, func, false);
         register(book, argm, false);
       }
-      language::syntax::Term::Op2 { val0, val1, .. } => {
+      language::syntax::LinearTerm::Op2 { val0, val1, .. } => {
         register(book, val0, false);
         register(book, val1, false);
       }
-      term@language::syntax::Term::Ctr { name, args } => {
+      term@language::syntax::LinearTerm::Ctr { name, args } => {
         // Registers id
         let id = match book.name_to_id.get(name) {
           None => {
@@ -100,9 +100,9 @@ pub fn add_group(book: &mut RuleBook, name: &str, group: &RuleGroup) {
         if lhs_top {
           for i in 0 .. args.len() {
             let is_strict = match *args[i] {
-              language::syntax::Term::Ctr { .. } => true,
-              language::syntax::Term::U6O { .. } => true,
-              language::syntax::Term::F6O { .. } => true,
+              language::syntax::LinearTerm::Ctr { .. } => true,
+              language::syntax::LinearTerm::U6O { .. } => true,
+              language::syntax::LinearTerm::F6O { .. } => true,
               _ => false,
             };
             if is_strict {
@@ -126,7 +126,7 @@ pub fn add_group(book: &mut RuleBook, name: &str, group: &RuleGroup) {
   for rule in &group.1 {
     register(book, &rule.lhs, true);
     register(book, &rule.rhs, false);
-    if let language::syntax::Term::Ctr { ref name, .. } = *rule.lhs {
+    if let language::syntax::LinearTerm::Ctr { ref name, .. } = *rule.lhs {
       book.ctr_is_fun.insert(name.clone(), true);
     }
   }
@@ -170,10 +170,10 @@ pub fn gen_rulebook(file: &language::syntax::File) -> RuleBook {
 //   (add (zero)   (succ b)) = (succ b)
 //   (add (zero)   (zero)  ) = (zero)
 // This is a group of 4 rules starting with the "add" name.
-pub fn group_rules(rules: &[language::syntax::Rule]) -> HashMap<String, RuleGroup> {
+pub fn group_rules(rules: &[language::syntax::LinearRule]) -> HashMap<String, RuleGroup> {
   let mut groups: HashMap<String, RuleGroup> = HashMap::new();
   for rule in rules {
-    if let language::syntax::Term::Ctr { ref name, ref args } = *rule.lhs {
+    if let language::syntax::LinearTerm::Ctr { ref name, ref args } = *rule.lhs {
       let group = groups.get_mut(name);
       match group {
         None => {
@@ -193,7 +193,7 @@ pub fn group_rules(rules: &[language::syntax::Rule]) -> HashMap<String, RuleGrou
 
 #[allow(dead_code)]
 pub struct SanitizedRule {
-  pub rule: language::syntax::Rule,
+  pub rule: language::syntax::LinearRule,
   pub uses: HashMap<String, u64>,
 }
 
@@ -209,7 +209,7 @@ pub struct SanitizedRule {
 // Example:
 //   - sanitizing: `(Foo a b) = (+ a a)`
 //   - results in: `(Foo x0 *) = dup x0.0 x0.1 = x0; (+ x0.0 x0.1)`
-pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::Rule, String> {
+pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::LinearRule, String> {
   // Pass through the lhs of the function generating new names
   // for every variable found in the style described before with
   // the fresh function. Also checks if rule's left side is valid.
@@ -261,7 +261,7 @@ pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::
     lhs: bool,
     tbl: &mut NameTable,
     ctx: &mut CtxSanitizeTerm,
-  ) -> Result<Box<language::syntax::Term>, String> {
+  ) -> Result<Box<language::syntax::LinearTerm>, String> {
     fn rename_erased(name: &mut String, uses: &HashMap<String, u64>) {
       if !runtime::get_global_name_misc(name).is_some() && uses.get(name).copied() <= Some(0) {
         *name = "*".to_string();
@@ -272,13 +272,13 @@ pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::
         if lhs {
           let mut name = tbl.get(name).unwrap_or(name).clone();
           rename_erased(&mut name, ctx.uses);
-          Box::new(language::syntax::Term::Var { name })
+          Box::new(language::syntax::LinearTerm::Var { name })
         } else if runtime::get_global_name_misc(name).is_some() {
           if tbl.get(name).is_some() {
             panic!("Using a global variable more than once isn't supported yet. Use an explicit 'let' to clone it. {} {:?}", name, tbl.get(name));
           } else {
             tbl.insert(name.clone(), String::new());
-            Box::new(language::syntax::Term::Var { name: name.clone() })
+            Box::new(language::syntax::LinearTerm::Var { name: name.clone() })
           }
         } else {
           // create a var with the name generated before
@@ -286,10 +286,10 @@ pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::
           if let Some(name) = tbl.get(name) {
             let used = { *ctx.uses.entry(name.clone()).and_modify(|x| *x += 1).or_insert(1) };
             let name = format!("{}.{}", name, used - 1);
-            Box::new(language::syntax::Term::Var { name })
+            Box::new(language::syntax::LinearTerm::Var { name })
           //} else if get_global_name_misc(&name) {
           // println!("Allowed unbound variable: {}", name);
-          // Box::new(language::syntax::Term::Var { name: name.clone() })
+          // Box::new(language::syntax::LinearTerm::Var { name: name.clone() })
           } else {
             return Err(format!("Unbound variable: `{}`.", name));
           }
@@ -336,13 +336,13 @@ pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::
         }
         let nam0 = format!("{}{}", new_nam0, if !is_global_0 { ".0" } else { "" });
         let nam1 = format!("{}{}", new_nam1, if !is_global_0 { ".0" } else { "" });
-        let term = language::syntax::Term::Dup { nam0, nam1, expr, body };
+        let term = language::syntax::LinearTerm::Dup { nam0, nam1, expr, body };
         Box::new(term)
       }
       language::syntax::Term::Sup { val0, val1 } => {
         let val0 = sanitize_term(val0, lhs, tbl, ctx)?;
         let val1 = sanitize_term(val1, lhs, tbl, ctx)?;
-        let term = language::syntax::Term::Sup { val0, val1 };
+        let term = language::syntax::LinearTerm::Sup { val0, val1 };
         Box::new(term)
       }
       language::syntax::Term::Let { name, expr, body } => {
@@ -374,16 +374,16 @@ pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::
         if let Some(x) = got_name {
           tbl.insert(name.clone(), x);
         }
-        let expr = Box::new(language::syntax::Term::Var { name: new_name.clone() });
+        let expr = Box::new(language::syntax::LinearTerm::Var { name: new_name.clone() });
         let body = duplicator(&new_name, expr, body, ctx.uses);
         rename_erased(&mut new_name, ctx.uses);
-        let term = language::syntax::Term::Lam { name: new_name, body };
+        let term = language::syntax::LinearTerm::Lam { name: new_name, body };
         Box::new(term)
       }
       language::syntax::Term::App { func, argm } => {
         let func = sanitize_term(func, lhs, tbl, ctx)?;
         let argm = sanitize_term(argm, lhs, tbl, ctx)?;
-        let term = language::syntax::Term::App { func, argm };
+        let term = language::syntax::LinearTerm::App { func, argm };
         Box::new(term)
       }
       language::syntax::Term::Ctr { name, args } => {
@@ -392,21 +392,21 @@ pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::
           let arg = sanitize_term(arg, lhs, tbl, ctx)?;
           n_args.push(arg);
         }
-        let term = language::syntax::Term::Ctr { name: name.clone(), args: n_args };
+        let term = language::syntax::LinearTerm::Ctr { name: name.clone(), args: n_args };
         Box::new(term)
       }
       language::syntax::Term::Op2 { oper, val0, val1 } => {
         let val0 = sanitize_term(val0, lhs, tbl, ctx)?;
         let val1 = sanitize_term(val1, lhs, tbl, ctx)?;
-        let term = language::syntax::Term::Op2 { oper: *oper, val0, val1 };
+        let term = language::syntax::LinearTerm::Op2 { oper: *oper, val0, val1 };
         Box::new(term)
       }
       language::syntax::Term::U6O { numb } => {
-        let term = language::syntax::Term::U6O { numb: *numb };
+        let term = language::syntax::LinearTerm::U6O { numb: *numb };
         Box::new(term)
       }
       language::syntax::Term::F6O { numb } => {
-        let term = language::syntax::Term::F6O { numb: *numb };
+        let term = language::syntax::LinearTerm::F6O { numb: *numb };
         Box::new(term)
       }
     };
@@ -419,10 +419,10 @@ pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::
   // applying dup on them.
   fn duplicator(
     name: &str,
-    expr: Box<language::syntax::Term>,
-    body: Box<language::syntax::Term>,
+    expr: Box<language::syntax::LinearTerm>,
+    body: Box<language::syntax::LinearTerm>,
     uses: &HashMap<String, u64>,
-  ) -> Box<language::syntax::Term> {
+  ) -> Box<language::syntax::LinearTerm> {
     let amount = uses.get(name).copied();
 
     match amount {
@@ -434,7 +434,7 @@ pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::
           std::cmp::Ordering::Less => body,
           // if used once just make a let then
           std::cmp::Ordering::Equal => {
-            let term = language::syntax::Term::Let { name: format!("{}.0", name), expr, body };
+            let term = language::syntax::LinearTerm::Let { name: format!("{}.0", name), expr, body };
             Box::new(term)
           }
           // if used more then once duplicate
@@ -458,7 +458,7 @@ pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::
             }
 
             // use aux variables to duplicate the variable
-            let dup = language::syntax::Term::Dup {
+            let dup = language::syntax::LinearTerm::Dup {
               nam0: vars.pop().unwrap(),
               nam1: vars.pop().unwrap(),
               expr,
@@ -477,16 +477,16 @@ pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::
   fn duplicator_go(
     i: u64,
     duplicated_times: u64,
-    body: Box<language::syntax::Term>,
+    body: Box<language::syntax::LinearTerm>,
     vars: &mut Vec<String>,
-  ) -> Box<language::syntax::Term> {
+  ) -> Box<language::syntax::LinearTerm> {
     if i == duplicated_times {
       body
     } else {
       let nam0 = vars.pop().unwrap();
       let nam1 = vars.pop().unwrap();
-      let exp0 = Box::new(language::syntax::Term::Var { name: format!("c.{}", i - 1) });
-      Box::new(language::syntax::Term::Dup {
+      let exp0 = Box::new(language::syntax::LinearTerm::Var { name: format!("c.{}", i - 1) });
+      Box::new(language::syntax::LinearTerm::Dup {
         nam0,
         nam1,
         expr: exp0,
@@ -519,16 +519,16 @@ pub fn sanitize_rule(rule: &language::syntax::Rule) -> Result<language::syntax::
 
   // duplicate right side variables that are used more than once
   for (_key, value) in table {
-    let expr = Box::new(language::syntax::Term::Var { name: value.clone() });
+    let expr = Box::new(language::syntax::LinearTerm::Var { name: value.clone() });
     rhs = duplicator(&value, expr, rhs, &uses);
   }
 
   // returns the sanitized rule
-  Ok(language::syntax::Rule { lhs, rhs })
+  Ok(language::syntax::LinearRule { lhs, rhs })
 }
 
 // Sanitizes all rules in a vector
-pub fn sanitize_rules(rules: &[language::syntax::Rule]) -> Vec<language::syntax::Rule> {
+pub fn sanitize_rules(rules: &[language::syntax::Rule]) -> Vec<language::syntax::LinearRule> {
   rules
     .iter()
     .map(|rule| {

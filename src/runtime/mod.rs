@@ -33,7 +33,7 @@ pub fn default_heap_size() -> usize {
 pub fn default_heap_tids() -> usize {
   return std::thread::available_parallelism().unwrap().get();
 }
-
+/*
 pub struct Runtime {
   pub heap: Heap,
   pub prog: Program,
@@ -391,3 +391,4 @@ impl Runtime {
     language::readback::as_linear_term(&self.heap, &self.prog, host)
   }
 }
+*/

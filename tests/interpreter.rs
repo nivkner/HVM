@@ -1,8 +1,6 @@
 #![allow(unused)]
 
 use proptest::prelude::*;
-use std::rc::Rc;
-use std::cell::Cell;
 use hvm::syntax::Oper;
 
 const MAX_U60: u64 = !0 >> 4;
@@ -24,11 +22,11 @@ impl Default for IdetifierMax {
 #[derive(Clone, Debug, PartialEq)]
 pub enum LesserTerm {
   Identifier { name: usize },
-  Lam { name: usize, body: Rc<LesserTerm> },
-  App { func: Rc<LesserTerm>, argm: Rc<LesserTerm> },
+  Lam { name: usize, body: Box<LesserTerm> },
+  App { func: Box<LesserTerm>, argm: Box<LesserTerm> },
   U60 { numb: u64 },
   F60 { numb: f64 },
-  Op2 { oper: Op, val0: Rc<LesserTerm>, val1: Rc<LesserTerm> },
+  Op2 { oper: Op, val0: Box<LesserTerm>, val1: Box<LesserTerm> },
 }
 
 impl Arbitrary for Op {

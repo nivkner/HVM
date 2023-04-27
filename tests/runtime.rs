@@ -1,3 +1,5 @@
+mod interpreter;
+
 use proptest::prelude::*;
 
 static INSERSION_SORT: &str = "

@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use proptest::prelude::*;
-use hvm::syntax::{Oper, Term};
+use hvm::syntax::{Oper, Term, Rule};
 
 const MAX_U60: u64 = !0 >> 4;
 
@@ -21,6 +21,13 @@ impl Default for TermParams {
             max_identifiers: 10,
             max_depth: 6,
         }
+    }
+}
+
+impl TermParams {
+    // returns the rules neccessary for an arbitrary term to parse correctly
+    pub fn get_rules(&self) -> impl Iterator<Item = Rule> {
+        (0..self.max_identifiers).map(|name| Rule::new(Term::constructor(format!("C{name}"), []), Term::integer(0)))
     }
 }
 

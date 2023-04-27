@@ -45,8 +45,7 @@ fn insertion_sort_parallel() {
 #[test]
 fn compare_to_model() {
     let params = arbitrary::TermParams::default();
-    let constructors = params.get_rules();
-    let runtime = hvm::RuntimeBuilder::default().set_thread_count(1).add_rules(constructors).build();
+    let runtime = hvm::RuntimeBuilder::default().set_thread_count(1).build();
     proptest!(|(lesser_term in arbitrary::LesserTerm::arbitrary_with(params))| {
         let term = lesser_term.into();
         let _result = std::panic::catch_unwind(|| runtime.normalize_term(&term));

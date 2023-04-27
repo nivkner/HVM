@@ -24,13 +24,6 @@ impl Default for TermParams {
     }
 }
 
-impl TermParams {
-    // returns the rules neccessary for an arbitrary term to parse correctly
-    pub fn get_rules(&self) -> impl Iterator<Item = Rule> {
-        (0..self.max_identifiers).map(|name| Rule::new(Term::constructor(format!("C{name}"), []), Term::integer(0)))
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum LesserTerm {
   Identifier { name: usize },
@@ -85,7 +78,8 @@ impl From<LesserTerm> for Term {
                     if scope.contains(&name) {
                         Term::variable(format!("v{name}"))
                     } else {
-                        Term::constructor(format!("C{name}"), [])
+                        // ensures that the term can evaluate without additional rules
+                        Term::integer(1)
                     }
                 },
                 LesserTerm::Lam { name, body } => {

@@ -1,4 +1,4 @@
-mod interpreter;
+mod arbitrary;
 
 use proptest::prelude::*;
 

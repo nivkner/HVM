@@ -10,8 +10,8 @@ pub struct Op(Oper);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TermParams {
-    max_identifiers: usize,
-    max_depth: usize,
+    pub max_identifiers: usize,
+    pub max_depth: usize,
 }
 
 impl Default for TermParams {

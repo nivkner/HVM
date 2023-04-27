@@ -37,7 +37,7 @@ fn insertion_sort_parallel() {
     proptest!(|(mut list in proptest::collection::vec(0u64..1048576, 0..256))| {
         let term = hvm::Term::constructor("Sort", [vec_term(list.clone())]);
         list.sort();
-        let output = as_vec(&runtime.normalize_term(&term)).unwrap();
+        let output: Vec<u64> = as_vec(&runtime.normalize_term(&term)).unwrap();
         assert_eq!(list, output);
     });
 }

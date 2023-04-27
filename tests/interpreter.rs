@@ -50,6 +50,17 @@ impl Arbitrary for LesserTerm {
         let u60_strat = (0..MAX_U60).prop_map(|numb| U60 {numb});
         // remove the last 4 bits to ensure floats match after conversion
         let f60_strat = proptest::num::f64::NORMAL.prop_map(|x| F60 {numb: f64::from_bits((x.to_bits() >> 4) << 4)});
-        prop_oneof![ u60_strat, f60_strat, ident_strat].boxed()
+        prop_oneof![ u60_strat, f60_strat, ident_strat].prop_recursive(
+            4, // No more than 4 branch levels deep
+            64, // Target around 64 total elements
+            16, // Each collection is up to 16 elements long
+            move |element| {
+                let boxed_elem = element.prop_map(|x| Box::new(x));
+                prop_oneof![
+                    (0..params.0, boxed_elem.clone()).prop_map(|(name, body)| Lam { name, body }),
+                    (boxed_elem.clone(), boxed_elem.clone()).prop_map(|(func, argm)| App { func, argm }),
+                    (proptest::arbitrary::any::<Op>(), boxed_elem.clone(), boxed_elem.clone()).prop_map(|(oper, val0, val1)| Op2 { oper, val0, val1 }),
+                ]
+        }).boxed()
     }
 }

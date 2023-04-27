@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use proptest::prelude::*;
-use hvm::syntax::Oper;
+use hvm::syntax::{Oper, Term};
 
 const MAX_U60: u64 = !0 >> 4;
 
@@ -67,5 +67,32 @@ impl Arbitrary for LesserTerm {
                     (proptest::arbitrary::any::<Op>(), boxed_elem.clone(), boxed_elem.clone()).prop_map(|(oper, val0, val1)| Op2 { oper, val0, val1 }),
                 ]
         }).boxed()
+    }
+}
+
+impl From<LesserTerm> for Term {
+    fn from(term: LesserTerm) -> Self {
+        fn from_inner(term: LesserTerm, scope: &mut Vec<usize>) -> Term {
+            match term {
+                LesserTerm::Identifier { name } => {
+                    if scope.contains(&name) {
+                        Term::variable(format!("v{name}"))
+                    } else {
+                        Term::constructor(format!("C{name}"), [])
+                    }
+                },
+                LesserTerm::Lam { name, body } => {
+                    scope.push(name);
+                    let out = Term::lambda(format!("v{name}"), from_inner(*body, scope));
+                    scope.pop();
+                    out
+                },
+                LesserTerm::App { func, argm } => Term::application(from_inner(*func, scope), from_inner(*argm, scope)),
+                LesserTerm::U60 { numb } => Term::integer(numb),
+                LesserTerm::F60 { numb } => Term::float(numb),
+                LesserTerm::Op2 { oper, val0, val1 } => Term::binary_operator(oper.0, from_inner(*val0, scope), from_inner(*val1, scope)),
+            }
+        }
+        from_inner(term, &mut vec![])
     }
 }

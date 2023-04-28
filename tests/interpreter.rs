@@ -77,7 +77,6 @@ fn reduce_weak(term: &mut Term) {
                             val1: Box::new(Term::variable("x1")),
                         };
                         era_aware_substitute(name, &mut sup, inner_body);
-
                         era_aware_substitute(nam0, &mut Term::lambda("x0", Term::variable("b0")), body);
                         era_aware_substitute(nam1, &mut Term::lambda("x1", Term::variable("b1")), body);
                         let owned_inner_body = std::mem::replace(inner_body as &mut Term, Term::integer(0));

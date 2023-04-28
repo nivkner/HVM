@@ -85,6 +85,16 @@ fn reduce_weak(term: &mut Term) {
                         let new_dup = Dup { nam0: String::from("b0"), nam1: String::from("b1"), expr: Box::new(owned_inner_body), body: Box::new(owned_body)};
                         std::mem::replace(term, new_dup);
                     },
+                    // dup a b = {r s}
+                    // --------------- DUP-SUP
+                    // a <- r
+                    // b <- s
+                    Sup {val0, val1} => {
+                        era_aware_substitute(nam0, val0, body);
+                        era_aware_substitute(nam1, val1, body);
+                        let owned_body = std::mem::replace(body as &mut Term, Term::integer(0));
+                        std::mem::replace(term, owned_body);
+                    },
                     _ => todo!("but wait, theres more!")
                 }
             },

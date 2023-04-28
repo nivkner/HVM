@@ -48,8 +48,10 @@ fn reduce_weak(term: &mut Term) {
     }
 }
 
-fn substitute(var_name: &str, expression: &mut Term, body: &mut Term) {
-    //
+// substitute the variable matching the given name, with the expression in body
+// returns true if a substitution was made inside body, and false otherwise
+fn substitute(name: &str, expression: &mut Term, body: &mut Term) -> bool {
+    true
 }
 
 pub fn sanitize_term(term: &Term) -> Result<Term, Box<dyn Error + Sync + Send + 'static>> {

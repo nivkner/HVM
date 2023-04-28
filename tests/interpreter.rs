@@ -4,6 +4,8 @@ use hvm::syntax::{Oper, Term, Rule};
 use hvm::rulebook::sanitize_rule;
 use std::error::Error;
 
+static ERA: &str = "*";
+
 // reduces term to Normal Form
 pub fn normalize_term(term: &Term) -> Term {
     let mut term_copy = term.clone();
@@ -96,7 +98,7 @@ fn reduce_weak(mut term: Term) -> Term {
 
 // behaves like substitute, but returns early when the target name is ERA
 fn era_aware_substitute(target: &str, expression: Term, body: &mut Term) {
-    if target != "*" {
+    if target != ERA {
         substitute(target, expression, body)
     }
 }

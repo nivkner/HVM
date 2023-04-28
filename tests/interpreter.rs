@@ -45,7 +45,6 @@ fn reduce_weak(mut term: Term) -> Term {
                         term = Dup { nam0: String::from("x0"), nam1: String::from("x1"), expr: argm, body};
                     }
                     func => {
-                        eprintln!("cannot reduce an application over {}", func);
                         // allow applications with no associated rules, to match HVM behavior
                         return App { func: Box::new(func), argm };
                     },

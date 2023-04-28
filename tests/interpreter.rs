@@ -32,7 +32,7 @@ fn reduce_weak(term: &mut Term) {
                     // x <- a
                     // body
                     Lam {name, body} => {
-                        substitute(name, argm, body);
+                        era_aware_substitute(name, argm, body);
                         // take the body by value to avoid borrowing it and term at the same time
                         let new_body = std::mem::replace(body as &mut Term, Term::integer(0));
                         std::mem::replace(term, new_body);
@@ -64,6 +64,15 @@ fn reduce_weak(term: &mut Term) {
             },
             _ => todo!("not there yet"),
         }
+    }
+}
+
+// behaves like substitute, but returns early when the target name is ERA
+fn era_aware_substitute(target: &str, expression: &mut Term, body: &mut Term) -> bool {
+    if target == "*" {
+        false
+    } else {
+        substitute(target, expression, body)
     }
 }
 

@@ -80,15 +80,17 @@ fn reduce_weak(mut term: Term) -> Term {
                         era_aware_substitute(&nam1, *val1, &mut body);
                         term = *body;
                     },
-                    // dup a b = V
-                    // --------------- DUP-*
-                    // a <- V
-                    // b <- V
-                    expr => {
+                    // dup a b = N
+                    // --------------- DUP-{U60, F60}
+                    // a <- N
+                    // b <- N
+                    expr @ U6O { numb: _ } | expr @ F6O { numb: _ } => {
                         era_aware_substitute(&nam0, expr.clone(), &mut body);
                         era_aware_substitute(&nam1, expr, &mut body);
                         term = *body;
                     },
+                    // do not duplicate other expressions to maintain linearity
+                    expr => return Dup { nam0, nam1, expr: Box::new(expr), body },
                 }
             }
             _ => todo!("not there yet"),

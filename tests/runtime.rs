@@ -50,6 +50,7 @@ fn compare_to_model() {
     proptest!(|(lesser_term in arbitrary::LesserTerm::arbitrary_with(params))| {
         let term = lesser_term.into();
         let _result = std::panic::catch_unwind(|| runtime.normalize_term(&term));
-        // TODO: asset_eq!(expected_result, result);
+        // TODO: asset!(isomorphic(expected_result, result));
+        // variable names might be different
     })
 }

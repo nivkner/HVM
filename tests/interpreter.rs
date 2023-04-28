@@ -37,7 +37,26 @@ fn reduce_weak(term: &mut Term) {
                         let new_body = std::mem::replace(body as &mut Term, Term::integer(0));
                         std::mem::replace(term, new_body);
                     }
-                    _ => todo!("but wait, there's more!"),
+                    // ({a b} c)
+                    // --------------- APP-SUP
+                    // dup x0 x1 = c
+                    // {(a x0) (b x1)}
+                    Sup { val0, val1 } => {
+                        let owned_val0 = std::mem::replace(val0 as &mut Term, Term::integer(0));
+                        let owned_val1 = std::mem::replace(val1 as &mut Term, Term::integer(0));
+                        let owned_argm = std::mem::replace(argm as &mut Term, Term::integer(0));
+                        let body = Box::new(Sup {
+                            val0: Box::new(Term::application( owned_val0, Term::variable("x0"))),
+                            val1: Box::new(Term::application( owned_val1, Term::variable("x1"))),
+                        });
+                        let dupped = Dup { nam0: String::from("x0"), nam1: String::from("x1"), expr: Box::new(owned_argm), body};
+                        std::mem::replace(term, dupped);
+                    }
+                    _ => {
+                        eprintln!("cannot reduce an application over {}", func);
+                        // allow applications with no associated rules, to match HVM behavior
+                        break
+                    },
                 }
             },
             Dup { nam0, nam1, expr, body } => {

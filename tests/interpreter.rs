@@ -61,7 +61,32 @@ fn reduce_weak(term: &mut Term) {
                 }
             },
             Dup { nam0, nam1, expr, body } => {
-                todo!("wait for it");
+                // reduce expr so that we know what we are duplicating
+                reduce_weak(expr);
+                let expr: &mut Term = expr;
+                match expr {
+                    // dup a b = λx(body)
+                    // ------------------ DUP-LAM
+                    // a <- λx0(b0)
+                    // b <- λx1(b1)
+                    // x <- {x0 x1}
+                    // dup b0 b1 = body
+                    Lam {name, body: inner_body} => {
+                        let mut sup = Sup {
+                            val0: Box::new(Term::variable("x0")),
+                            val1: Box::new(Term::variable("x1")),
+                        };
+                        era_aware_substitute(name, &mut sup, inner_body);
+
+                        era_aware_substitute(nam0, &mut Term::lambda("x0", Term::variable("b0")), body);
+                        era_aware_substitute(nam1, &mut Term::lambda("x1", Term::variable("b1")), body);
+                        let owned_inner_body = std::mem::replace(inner_body as &mut Term, Term::integer(0));
+                        let owned_body = std::mem::replace(body as &mut Term, Term::integer(0));
+                        let new_dup = Dup { nam0: String::from("b0"), nam1: String::from("b1"), expr: Box::new(owned_inner_body), body: Box::new(owned_body)};
+                        std::mem::replace(term, new_dup);
+                    },
+                    _ => todo!("but wait, theres more!")
+                }
             },
             _ => todo!("not there yet"),
         }

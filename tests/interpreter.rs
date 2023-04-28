@@ -94,7 +94,16 @@ fn reduce_weak(term: &mut Term) {
                         let owned_body = std::mem::replace(body as &mut Term, Term::integer(0));
                         std::mem::replace(term, owned_body);
                     },
-                    _ => todo!("but wait, theres more!")
+                    // dup a b = V
+                    // --------------- DUP-*
+                    // a <- V
+                    // b <- V
+                    _ => {
+                        era_aware_substitute(nam0, &mut expr.clone(), body);
+                        era_aware_substitute(nam1, expr, body);
+                        let owned_body = std::mem::replace(body as &mut Term, Term::integer(0));
+                        std::mem::replace(term, owned_body);
+                    },
                 }
             },
             _ => todo!("not there yet"),

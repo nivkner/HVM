@@ -24,7 +24,7 @@ where hvm::Term: TryInto<T> {
     term.as_list()?.cloned().map(|x| x.try_into().ok()).collect()
 }
 
-pub fn sanitize_term(term: &Term) -> Result<Term, Box<dyn Error + Sync + Send + 'static>> {
+fn sanitize_term(term: &Term) -> Result<Term, Box<dyn Error + Sync + Send + 'static>> {
     let rule = Rule::new(Term::constructor("HVM_MAIN_CALL", []), term.clone());
     Ok(*sanitize_rule(&rule)?.rhs)
 }

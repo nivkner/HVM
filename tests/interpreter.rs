@@ -92,8 +92,24 @@ fn reduce_weak(mut term: Term) -> Term {
                     // do not duplicate other expressions to maintain linearity
                     expr => return Dup { nam0, nam1, expr: Box::new(expr), body },
                 }
+            },
+            Op2 { oper, val0, val1 } => {
+                // reduce the values so that we know how to reduce the operation
+                match (reduce_weak(*val0), reduce_weak(*val1)) {
+                    // (+ {a0 a1} b)
+                    // --------------------- OP2-SUP-A
+                    // dup b0 b1 = b
+                    // {(+ a0 b0) (+ a1 b1)}
+                    (Sup { val0: val0_inner, val1: val1_inner }, val1) => {
+                        let sup = Sup {
+                            val0: Box::new(Term::binary_operator(oper, *val0_inner, Term::variable("b0"))),
+                            val1: Box::new(Term::binary_operator(oper, *val1_inner, Term::variable("b1")))
+                        };
+                        term = Dup { nam0: String::from("b0"), nam1: String::from("b1"), expr: Box::new(val1), body: Box::new(sup) };
+                    },
+                    _ => todo!("but wait, theres more!"),
+                }
             }
-            _ => todo!("not there yet"),
         }
     }
 }

@@ -94,6 +94,7 @@ fn reduce_weak(mut term: Term) -> Term {
                 }
             },
             Op2 { oper, val0, val1 } => {
+                use Oper::*;
                 // reduce the values so that we know how to reduce the operation
                 match (reduce_weak(*val0), reduce_weak(*val1)) {
                     // (+ {a0 a1} b)
@@ -117,6 +118,29 @@ fn reduce_weak(mut term: Term) -> Term {
                             val1: Box::new(Term::binary_operator(oper, Term::variable("a1"), *val1_inner))
                         };
                         term = Dup { nam0: String::from("a0"), nam1: String::from("a1"), expr: Box::new(val0), body: Box::new(sup) };
+                    },
+                    // (+ N M)
+                    // --------------------- OP2-U60
+                    // N + M
+                    ( U6O { numb: n0 }, U6O { numb: n1 } ) => {
+                        term = match oper {
+                            Add => Term::integer(n0 + n1),
+                            Sub => Term::integer(n0 - n1),
+                            Mul => Term::integer(n0 * n1),
+                            Div => Term::integer(n0 / n1),
+                            Mod => Term::integer(n0 % n1),
+                            And => Term::integer(n0 & n1),
+                            Or  => Term::integer(n0 | n1),
+                            Xor => Term::integer(n0 ^ n1),
+                            Shl => Term::integer(n0 << n1),
+                            Shr => Term::integer(n0 >> n1),
+                            Lte => Term::integer((n0 <= n1).into()),
+                            Ltn => Term::integer((n0 < n1).into()),
+                            Eql => Term::integer((n0 == n1).into()),
+                            Gte => Term::integer((n0 >= n1).into()),
+                            Gtn => Term::integer((n0 > n1).into()),
+                            Neq => Term::integer((n0 != n1).into()),
+                        };
                     },
                     _ => todo!("but wait, theres more!"),
                 }

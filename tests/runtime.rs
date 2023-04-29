@@ -66,7 +66,7 @@ fn compare_to_model() {
         let term: Term = lesser_term.into();
         let comp_result = std::panic::catch_unwind(|| {
             let runtime = &runtime; // shadow to prevent moving
-            std::thread::scope(move |s| {
+            return std::thread::scope(move |s| {
                 let term_copy = term.clone();
                 let hvm_handle = s.spawn(move || {
                     runtime.normalize_term(&term)
@@ -88,6 +88,18 @@ fn compare_to_model() {
                 panic!("term (possibly) does not terminate");
             });
         });
+
+        if let Ok(comp) = comp_result {
+            match comp {
+                Some((Ok(output), Ok(expected_output))) => assert!(isomorphic(&output, &expected_output), "expected {}, got {}", expected_output, output),
+                Some((Err(err), Ok(expected_output))) => {
+                    eprintln!("expected result {}", expected_output);
+                    std::panic::resume_unwind(err);
+                },
+                None => panic!("HVM did not terminate"),
+                _ => {},
+            }
+        }
 
         // TODO: asset!(isomorphic(expected_result, result));
         // variable names might be different

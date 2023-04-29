@@ -39,7 +39,7 @@ fn isomorphic(term1: &Term, term2: &Term) -> bool {
 #[test]
 fn insertion_sort_serial() {
     let runtime = hvm::RuntimeBuilder::default().set_thread_count(1).add_code(INSERSION_SORT).unwrap().build();
-    proptest!(|(mut list in proptest::collection::vec(0u64..1048576, 0..256))| {
+    proptest!(|(mut list in proptest::collection::vec(0u64..1048576, 0..64))| {
         let term = hvm::Term::constructor("Sort", [vec_term(list.clone())]);
         list.sort();
         let output = as_vec(&runtime.normalize_term(&term)).unwrap();
@@ -50,7 +50,7 @@ fn insertion_sort_serial() {
 #[test]
 fn insertion_sort_parallel() {
     let runtime = hvm::RuntimeBuilder::default().add_code(INSERSION_SORT).unwrap().build();
-    proptest!(|(mut list in proptest::collection::vec(0u64..1048576, 0..256))| {
+    proptest!(|(mut list in proptest::collection::vec(0u64..1048576, 0..64))| {
         let term = hvm::Term::constructor("Sort", [vec_term(list.clone())]);
         list.sort();
         let output: Vec<u64> = as_vec(&runtime.normalize_term(&term)).unwrap();

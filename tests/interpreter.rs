@@ -48,11 +48,11 @@ fn reduce_weak(mut term: Term) -> Term {
                     // dup x0 x1 = c
                     // {(a x0) (b x1)}
                     Sup { val0, val1 } => {
-                        let body = Box::new(Sup {
-                            val0: Box::new(Term::application( *val0, Term::variable("x0"))),
-                            val1: Box::new(Term::application( *val1, Term::variable("x1"))),
-                        });
-                        term = Dup { nam0: String::from("x0"), nam1: String::from("x1"), expr: argm, body};
+                        let body = Term::superposition(
+                            Term::application(*val0, Term::variable("x0")),
+                            Term::application(*val1, Term::variable("x1"))
+                        );
+                        term = Term::duplication("x0", "x1", *argm, body);
                     }
                     func => {
                         // no matching rules for this application
@@ -70,14 +70,11 @@ fn reduce_weak(mut term: Term) -> Term {
                     // x <- {x0 x1}
                     // dup b0 b1 = body
                     Lam {name, body: mut inner_body} => {
-                        let mut sup = Sup {
-                            val0: Box::new(Term::variable("x0")),
-                            val1: Box::new(Term::variable("x1")),
-                        };
+                        let sup = Term::superposition(Term::variable("x0"), Term::variable("x1"));
                         substitute(&name, sup, &mut inner_body);
                         substitute(&nam0, Term::lambda("x0", Term::variable("b0")), &mut body);
                         substitute(&nam1, Term::lambda("x1", Term::variable("b1")), &mut body);
-                        term = Dup { nam0: String::from("b0"), nam1: String::from("b1"), expr: inner_body, body: body};
+                        term = Term::duplication("b0", "b1", *inner_body, *body);
                     },
                     // dup a b = {r s}
                     // --------------- DUP-SUP
@@ -98,7 +95,7 @@ fn reduce_weak(mut term: Term) -> Term {
                         term = *body;
                     },
                     // no matching rules for this duplication
-                    expr => return Dup { nam0, nam1, expr: Box::new(expr), body },
+                    expr => return Term::duplication(nam0, nam1, expr, *body),
                 }
             },
             Op2 { oper, val0, val1 } => {
@@ -110,22 +107,22 @@ fn reduce_weak(mut term: Term) -> Term {
                     // dup b0 b1 = b
                     // {(+ a0 b0) (+ a1 b1)}
                     (Sup { val0: val0_inner, val1: val1_inner }, val1) => {
-                        let sup = Sup {
-                            val0: Box::new(Term::binary_operator(oper, *val0_inner, Term::variable("b0"))),
-                            val1: Box::new(Term::binary_operator(oper, *val1_inner, Term::variable("b1")))
-                        };
-                        term = Dup { nam0: String::from("b0"), nam1: String::from("b1"), expr: Box::new(val1), body: Box::new(sup) };
+                        let sup = Term::superposition(
+                            Term::binary_operator(oper, *val0_inner, Term::variable("b0")),
+                            Term::binary_operator(oper, *val1_inner, Term::variable("b1"))
+                        );
+                        term = Term::duplication("b0", "b1", val1, sup);
                     },
                     // (+ a {b0 b1})
                     // --------------------- OP2-SUP-B
                     // dup a0 a1 = a
                     // {(+ a0 b0) (+ a1 b1)}
                     (val0, Sup { val0: val0_inner, val1: val1_inner }) => {
-                        let sup = Sup {
-                            val0: Box::new(Term::binary_operator(oper, Term::variable("a0"), *val0_inner)),
-                            val1: Box::new(Term::binary_operator(oper, Term::variable("a1"), *val1_inner))
-                        };
-                        term = Dup { nam0: String::from("a0"), nam1: String::from("a1"), expr: Box::new(val0), body: Box::new(sup) };
+                        let sup = Term::superposition(
+                            Term::binary_operator(oper, Term::variable("a0"), *val0_inner),
+                            Term::binary_operator(oper, Term::variable("a1"), *val1_inner),
+                        );
+                        term = Term::duplication("a0", "a1", val0, sup);
                     },
                     // (+ N M)
                     // --------------------- OP2-U60

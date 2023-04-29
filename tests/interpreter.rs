@@ -166,7 +166,8 @@ fn reduce_weak(mut term: Term) -> Term {
                             Shr => Term::float(n0.log(n1)),
                         };
                     },
-                    _ => todo!("but wait, theres more!"),
+                    // allow operations with no associated rules, to match HVM behavior
+                    (val0, val1) => return Term::binary_operator(oper, val0, val1),
                 }
             }
         }

@@ -1,7 +1,10 @@
 mod arbitrary;
 mod interpreter;
 
+use std::error::Error;
+use hvm::rulebook::sanitize_rule;
 use proptest::prelude::*;
+use hvm::syntax::{Term, Rule};
 
 static INSERSION_SORT: &str = "
 (Sort List.nil)         = List.nil
@@ -19,6 +22,11 @@ where T: Into<hvm::Term> {
 fn as_vec<T>(term: &hvm::Term) -> Option<Vec<T>>
 where hvm::Term: TryInto<T> {
     term.as_list()?.cloned().map(|x| x.try_into().ok()).collect()
+}
+
+pub fn sanitize_term(term: &Term) -> Result<Term, Box<dyn Error + Sync + Send + 'static>> {
+    let rule = Rule::new(Term::constructor("HVM_MAIN_CALL", []), term.clone());
+    Ok(*sanitize_rule(&rule)?.rhs)
 }
 
 #[test]

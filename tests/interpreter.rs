@@ -1,8 +1,5 @@
 #![allow(unused)]
-
-use hvm::syntax::{Oper, Term, Rule};
-use hvm::rulebook::sanitize_rule;
-use std::error::Error;
+use hvm::syntax::{Oper, Term};
 
 static ERA: &str = "*";
 
@@ -214,9 +211,4 @@ fn inner_substitute(target: &str, expression: Term, body: &mut Term) {
             inner_substitute(target, expression, val1);
         },
     }
-}
-
-pub fn sanitize_term(term: &Term) -> Result<Term, Box<dyn Error + Sync + Send + 'static>> {
-    let rule = Rule::new(Term::constructor("HVM_MAIN_CALL", []), term.clone());
-    Ok(*sanitize_rule(&rule)?.rhs)
 }

@@ -29,6 +29,13 @@ pub fn sanitize_term(term: &Term) -> Result<Term, Box<dyn Error + Sync + Send + 
     Ok(*sanitize_rule(&rule)?.rhs)
 }
 
+// returns true if the two terms are identical up to a renaming of variables
+fn isomorphic(term1: &Term, term2: &Term) -> bool {
+    // currently assumes both terms are sanitizeable
+    // and that the names of sanitized variables only depend on order of apearance
+    sanitize_term(term1).unwrap() == sanitize_term(term2).unwrap()
+}
+
 #[test]
 fn insertion_sort_serial() {
     let runtime = hvm::RuntimeBuilder::default().set_thread_count(1).add_code(INSERSION_SORT).unwrap().build();

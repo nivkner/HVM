@@ -100,8 +100,5 @@ fn compare_to_model() {
                 _ => {},
             }
         }
-
-        // TODO: asset!(isomorphic(expected_result, result));
-        // variable names might be different
     })
 }

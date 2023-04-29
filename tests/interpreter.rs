@@ -142,6 +142,30 @@ fn reduce_weak(mut term: Term) -> Term {
                             Neq => Term::integer((n0 != n1).into()),
                         };
                     },
+                    ( val0 @ F6O { numb: _ }, val1 @ F6O { numb: _ } ) => {
+                        let n0: f64 = val0.try_into().unwrap();
+                        let n1: f64 = val1.try_into().unwrap();
+                        term = match oper {
+                            Add => Term::float(n0 + n1),
+                            Sub => Term::float(n0 - n1),
+                            Mul => Term::float(n0 * n1),
+                            Div => Term::float(n0 / n1),
+                            Mod => Term::float(n0 % n1),
+                            Lte => Term::float((n0 <= n1).into()),
+                            Ltn => Term::float((n0 < n1).into()),
+                            Eql => Term::float((n0 == n1).into()),
+                            Gte => Term::float((n0 >= n1).into()),
+                            Gtn => Term::float((n0 > n1).into()),
+                            Neq => Term::float((n0 != n1).into()),
+                            // the following operations would be better served by a builtin func,
+                            // but this is to maintain parity with HVM.
+                            And => Term::float(f64::cos(n0) + f64::sin(n1)),
+                            Or  => Term::float(f64::atan2(n0, n1)),
+                            Xor => Term::float(n0.ceil() + n0.floor()),
+                            Shl => Term::float(n1.powf(n0)),
+                            Shr => Term::float(n0.log(n1)),
+                        };
+                    },
                     _ => todo!("but wait, theres more!"),
                 }
             }

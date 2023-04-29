@@ -107,6 +107,17 @@ fn reduce_weak(mut term: Term) -> Term {
                         };
                         term = Dup { nam0: String::from("b0"), nam1: String::from("b1"), expr: Box::new(val1), body: Box::new(sup) };
                     },
+                    // (+ a {b0 b1})
+                    // --------------------- OP2-SUP-B
+                    // dup a0 a1 = a
+                    // {(+ a0 b0) (+ a1 b1)}
+                    (val0, Sup { val0: val0_inner, val1: val1_inner }) => {
+                        let sup = Sup {
+                            val0: Box::new(Term::binary_operator(oper, Term::variable("a0"), *val0_inner)),
+                            val1: Box::new(Term::binary_operator(oper, Term::variable("a1"), *val1_inner))
+                        };
+                        term = Dup { nam0: String::from("a0"), nam1: String::from("a1"), expr: Box::new(val0), body: Box::new(sup) };
+                    },
                     _ => todo!("but wait, theres more!"),
                 }
             }

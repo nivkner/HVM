@@ -47,8 +47,8 @@ fn reduce_weak(mut term: Term) -> Term {
                         term = Dup { nam0: String::from("x0"), nam1: String::from("x1"), expr: argm, body};
                     }
                     func => {
-                        // allow applications with no associated rules, to match HVM behavior
-                        return App { func: Box::new(func), argm };
+                        // no matching rules for this application
+                        return Term::application(func, *argm);
                     },
                 }
             },
@@ -89,7 +89,7 @@ fn reduce_weak(mut term: Term) -> Term {
                         era_aware_substitute(&nam1, expr, &mut body);
                         term = *body;
                     },
-                    // do not duplicate other expressions to maintain linearity
+                    // no matching rules for this duplication
                     expr => return Dup { nam0, nam1, expr: Box::new(expr), body },
                 }
             },
@@ -166,7 +166,7 @@ fn reduce_weak(mut term: Term) -> Term {
                             Shr => Term::float(n0.log(n1)),
                         };
                     },
-                    // allow operations with no associated rules, to match HVM behavior
+                    // no matching rules for this operation
                     (val0, val1) => return Term::binary_operator(oper, val0, val1),
                 }
             }
